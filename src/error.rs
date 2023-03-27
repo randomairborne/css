@@ -4,7 +4,7 @@ use once_cell::sync::OnceCell;
 
 use axum::{
     http::StatusCode,
-    response::{Html, IntoResponse, Response},
+    response::{Html, IntoResponse, Redirect, Response},
 };
 
 pub static ERROR_TERA: OnceCell<Arc<tera::Tera>> = OnceCell::new();
@@ -35,6 +35,9 @@ pub enum Error {
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
+        if matches!(self, Self::NoToken) {
+            return Redirect::to("/oauth").into_response();
+        }
         let Some(tera) = ERROR_TERA.get() else {
             return Self::UninitializedOnceCell.to_ugly_response()
         };
