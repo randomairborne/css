@@ -19,6 +19,7 @@ async fn main() {
     let config: Config = toml::from_str(&config_string).expect("Invalid TOML");
     let app = axum::Router::new()
         .route("/", get(routes::classes))
+        .route("/:classid", get(routes::class))
         .route("/oauth", get(oauth::redirect))
         .route("/oauth/callback", get(oauth::set_tokens))
         .layer(tower_cookies::CookieManagerLayer::new())

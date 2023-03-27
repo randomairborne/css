@@ -3,7 +3,7 @@
 
 {% block content %}
 {% for class in classes %}
-{{ class.name }} {{ class.id }}
+<a href="/{{ class.id }}">{{ class.name }}</a>
 <br>
 {% endfor %}
 {% endblock content %}

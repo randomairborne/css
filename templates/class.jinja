@@ -1,0 +1,12 @@
+{% extends "base.jinja" %}
+{% block title %}{{ class.name }}{% endblock title %}
+
+{% block content %}
+{{ class.name }}
+<br>
+<br>
+{% for assignment in coursework.courseWork %}
+  {{ assignment.title }}
+  <br>
+{% endfor %}
+{% endblock content %}
