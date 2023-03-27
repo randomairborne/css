@@ -1,0 +1,7 @@
+# Generate with openssl rand -hex 64
+key = ""
+# URL of root of page- trailing slash trimmed automatically
+root_url = "http://localhost:8080"
+# Google API OAuth credentials
+client_id = ""
+client_secret = ""
