@@ -37,6 +37,7 @@ pub async fn class(
         .param("fields", "nextPageToken,courseWork(id,title)");
     if let Some(page) = pages.page {
         req_work = req_work.page_token(&page);
+        context.insert("is_first_page", &false);
     }
     let (general, work) = try_join!(req_general.doit(), req_work.doit())?;
     context.insert("class", &general.1);
