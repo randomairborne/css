@@ -3,10 +3,10 @@
 
 {% block content %}
 {{ class.name }}
-<br>
-<br>
 {% for assignment in coursework.courseWork %}
-  {{ assignment.title }}
-  <br>
+<div>{{ assignment.title }}</div>
 {% endfor %}
+{% if pagination_token %}
+<a href="?page={{ pagination_token }}">Next page</a>
+{% endif %}
 {% endblock content %}

@@ -13,7 +13,7 @@ pub static ERROR_TERA: OnceCell<Arc<tera::Tera>> = OnceCell::new();
 pub enum Error {
     #[error("Tera error: {0:?}")]
     Tera(#[from] tera::Error),
-    #[error("google-classroom1 error: {0:?}")]
+    #[error("Classroom API error: {0:?}")]
     GoogleClassroom(#[from] google_classroom1::Error),
     #[error("SerdeJson error: {0:?}")]
     SerdeJson(#[from] serde_json::Error),
@@ -21,6 +21,8 @@ pub enum Error {
     OAuth(#[from] oauth2::basic::BasicRequestTokenError<oauth2::reqwest::Error<reqwest::Error>>),
     #[error("Extractor error: {0}")]
     Extractor(&'static str),
+    #[error("Missing expected field: {0}")]
+    MissingField(&'static str),
     #[error("Tower-Cookies time error: {0}")]
     DurationOutOfRange(#[from] tower_cookies::cookie::time::error::ConversionRange),
     #[error("Invalid OAuth State")]

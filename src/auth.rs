@@ -2,12 +2,12 @@ use axum::{extract::FromRequestParts, http::request::Parts};
 use oauth2::{reqwest::async_http_client, RefreshToken, TokenResponse};
 use tower_cookies::Cookies;
 
-use crate::{AppState, Error};
+use crate::{state::ClassroomHyperClient, AppState, Error};
 
-pub struct AccessToken(pub String);
+pub struct UserClient(pub classroom::Classroom<ClassroomHyperClient>);
 
 #[axum::async_trait]
-impl FromRequestParts<AppState> for AccessToken {
+impl FromRequestParts<AppState> for UserClient {
     type Rejection = Error;
 
     async fn from_request_parts(
@@ -32,6 +32,7 @@ impl FromRequestParts<AppState> for AccessToken {
                 .await?;
             access.access_token().secret().to_string()
         };
-        Ok(Self(access_token))
+        let clrm = classroom::Classroom::new(state.client.clone(), access_token);
+        Ok(Self(clrm))
     }
 }

@@ -20,6 +20,7 @@ async fn main() {
     let app = axum::Router::new()
         .route("/", get(routes::classes))
         .route("/:classid", get(routes::class))
+        .route("/todo", get(routes::class))
         .route("/oauth", get(oauth::redirect))
         .route("/oauth/callback", get(oauth::set_tokens))
         .layer(tower_cookies::CookieManagerLayer::new())

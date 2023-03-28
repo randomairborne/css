@@ -16,13 +16,13 @@ pub struct AppState {
     pub oauth: oauth2::basic::BasicClient,
     pub key: Arc<Key>,
     pub tera: Arc<tera::Tera>,
-    pub client: ClassroomClient,
+    pub client: ClassroomHttpClient,
 }
 
-pub type ClassroomClient = classroom::hyper::client::Client<
-    classroom::hyper_rustls::HttpsConnector<classroom::hyper::client::HttpConnector>,
-    classroom::hyper::Body,
->;
+pub type ClassroomHttpClient =
+    classroom::hyper::client::Client<ClassroomHyperClient, classroom::hyper::Body>;
+pub type ClassroomHyperClient =
+    classroom::hyper_rustls::HttpsConnector<classroom::hyper::client::HttpConnector>;
 pub type Tokens = Arc<RwLock<HashMap<String, PkceCodeVerifier>>>;
 
 impl AppState {
