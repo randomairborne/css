@@ -1,0 +1,11 @@
+{% extends "base.jinja" %}
+{% block title %}To-Do{% endblock title %}
+
+{% block content %}
+{% for todo in todos %}
+<div>
+<div><a href="/assignment/{{ todo.id }}">{{ todo.name }}</a></div>
+<div class="todo-classname">{{ todo.class }}</div>
+</div>
+{% endfor %}
+{% endblock content %}
