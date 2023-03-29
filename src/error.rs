@@ -17,20 +17,28 @@ pub enum Error {
     GoogleClassroom(#[from] google_classroom1::Error),
     #[error("SerdeJson error: {0:?}")]
     SerdeJson(#[from] serde_json::Error),
+    #[error("Tokio task join error: {0:?}")]
+    Join(#[from] tokio::task::JoinError),
+    #[error("Tokio task join error: {0:?}")]
+    IntegerConversion(#[from] std::num::TryFromIntError),
     #[error("OAuth error")]
     OAuth(#[from] oauth2::basic::BasicRequestTokenError<oauth2::reqwest::Error<reqwest::Error>>),
     #[error("Extractor error: {0}")]
     Extractor(&'static str),
     #[error("Missing expected field: {0}")]
     MissingField(&'static str),
+    #[error("Error converting URL-encoded string")]
+    FromUtf8(#[from] std::string::FromUtf8Error),
     #[error("Tower-Cookies time error: {0}")]
     DurationOutOfRange(#[from] tower_cookies::cookie::time::error::ConversionRange),
     #[error("Invalid OAuth State")]
     InvalidState,
     #[error("OAuth Code Exchange Failed")]
     CodeExchangeFailed,
-    #[error("No token found - please reauthenticate")]
+    #[error("No token found - reauthenticating")]
     NoToken,
+    #[error("Invalid datetime detected")]
+    InvalidDateTime,
     #[error("Once cell uninitialized, please make an issue")]
     UninitializedOnceCell,
 }

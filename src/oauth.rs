@@ -21,7 +21,7 @@ const SCOPES: [&str; 11] = [
     "classroom.profile.photos",
 ];
 
-pub async fn redirect(State(state): State<AppState>) -> Redirect {
+pub async fn redirect(State(state): State<AppState>) -> Result<Redirect, Error> {
     let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
     let scopes = SCOPES
         .iter()
@@ -41,7 +41,7 @@ pub async fn redirect(State(state): State<AppState>) -> Redirect {
         tokio::time::sleep(std::time::Duration::from_secs(600)).await;
         state.tokens.write().await.remove(csrf_token.secret());
     });
-    Redirect::to(auth_url.as_str())
+    Ok(Redirect::to(auth_url.as_str()))
 }
 
 pub async fn set_tokens(
@@ -80,7 +80,7 @@ pub async fn set_tokens(
         refresh_cookie.set_path("/");
         private_cookies.add(refresh_cookie);
     }
-    Ok(Redirect::to("/"))
+    Ok(Redirect::to("/classes"))
 }
 
 #[derive(serde::Deserialize)]

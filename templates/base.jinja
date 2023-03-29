@@ -5,11 +5,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/assets/app.css">
+    <link rel="icon" href="/assets/favicon.png">
     <title>css - {% block title %}{% endblock title %}</title>
 </head>
 
 <body>
+    <header class="header">
+        <a href="/">Home</a>
+        <a href="/classes">Classes</a>
+        <a href="/todo">To Do</a>
+    </header>
+    <div class="container">
     {% block content %} {% endblock content %}
+    </div>
+    <footer class="footer">
+        <div>
+            <p>
+                <a href="/privacy">Privacy Policy</a>
+                <a href="/terms">Terms</a>
+                <a href="https://github.com/randomairborne/css">GitHub</a>
+            </p>
+        </div>
+    </footer>
 </body>
 
 </html>

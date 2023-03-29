@@ -18,9 +18,13 @@ async fn main() {
         std::fs::read_to_string("./config.toml").expect("Failed to read config file");
     let config: Config = toml::from_str(&config_string).expect("Invalid TOML");
     let app = axum::Router::new()
-        .route("/", get(routes::classes))
-        .route("/:classid", get(routes::class))
-        .route("/todo", get(routes::class))
+        .route("/", get(routes::about))
+        .route("/privacy", get(routes::privacy))
+        .route("/terms", get(routes::terms))
+        .route("/classes", get(routes::classes))
+        .route("/class/:classid", get(routes::class))
+        .route("/todo", get(routes::todo))
+        .route("/assignment/:id", get(routes::todo))
         .route("/oauth", get(oauth::redirect))
         .route("/oauth/callback", get(oauth::set_tokens))
         .layer(tower_cookies::CookieManagerLayer::new())

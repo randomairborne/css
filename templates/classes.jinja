@@ -3,6 +3,6 @@
 
 {% block content %}
 {% for class in classes %}
-<div><a href="/{{ class.id }}">{{ class.name }}</a></div>
+<div><a href="/class/{{ class.id }}" class="boxed">{{ class.name }}</a></div>
 {% endfor %}
 {% endblock content %}

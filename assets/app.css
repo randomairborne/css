@@ -4,4 +4,40 @@ body {
     display: flex;
     flex-direction: column;
     flex-wrap: wrap;
+    font-family: monospace;
+    margin: 0px;
+}
+
+a {
+    color: aqua;
+}
+
+a:visited {
+    color: aquamarine;
+}
+
+.boxed {
+    border-style: outset;
+    border-color: #212121;
+    border-radius: 5px;
+    padding: 2vh
+}
+
+.container {
+    display: flex;
+    margin: 1vh;
+    flex-direction: column;
+    flex-wrap: wrap;
+}
+
+.header {
+    background-color: #111111;
+    padding: 1vh;
+    padding-bottom: 2vh;
+}
+
+.footer {
+    background-color: #111111;
+    padding: 1vh;
+    padding-top: 2vh;
 }

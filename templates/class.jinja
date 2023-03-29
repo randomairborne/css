@@ -4,7 +4,7 @@
 {% block content %}
 {{ class.name }}
 {% for assignment in coursework.courseWork %}
-<div>{{ assignment.title }}</div>
+<a href="{{ assignment.alternateLink }}" class="boxed">{{ assignment.title }}</div>
 {% endfor %}
 {% if pagination_token %}
 <a href="?page={{ pagination_token }}">Next page</a>
