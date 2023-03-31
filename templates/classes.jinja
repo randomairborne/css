@@ -2,7 +2,12 @@
 {% block title %}Classes{% endblock title %}
 
 {% block content %}
+{% if classes %}
 {% for class in classes %}
-<div><a href="/class/{{ class.id }}" class="boxed">{{ class.name }}</a></div>
+<a href="/class/{{ class.id }}" class="boxed">{{ class.name }}</a>
 {% endfor %}
+{% else %}
+<h2>You don't seem to be in any classes.</h2>
+<a href="/oauth">Switch accounts?</a>
+{% endif %}
 {% endblock content %}

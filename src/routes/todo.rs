@@ -44,7 +44,7 @@ struct Todo {
     due: Option<NaiveDateTime>,
 }
 
-async fn todo_get_course<'a>(
+async fn todo_get_course(
     client: Classroom<ClassroomHyperClient>,
     course: Course,
 ) -> Result<Vec<Todo>, Error> {
