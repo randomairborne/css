@@ -1,10 +1,11 @@
+use std::collections::HashMap;
+
 use axum::{extract::State, response::Html};
 use classroom::{
-    api::{Course, Date, TimeOfDay},
-    chrono::{NaiveDate, NaiveDateTime, NaiveTime},
+    api::{Course, StudentSubmission},
     Classroom,
 };
-use tokio::task::JoinSet;
+use tokio::{task::JoinSet, try_join};
 
 use crate::{auth::UserClient, state::ClassroomHyperClient, AppState, Error};
 
@@ -40,8 +41,8 @@ struct Todo {
     class_name: String,
     id: String,
     description: Option<String>,
-    name: String,
-    due: Option<NaiveDateTime>,
+    name: Option<String>,
+    late: bool,
 }
 
 async fn todo_get_course(
@@ -54,53 +55,77 @@ async fn todo_get_course(
     let class_name = course
         .name
         .ok_or(Error::MissingField("courses.list.courses[].name"))?;
-    let assignments = client
+    let submissions_req = client
         .courses()
-        .course_work_list(&course_id)
-        .order_by("dueDate desc")
+        .course_work_student_submissions_list(&course_id, "-")
         .param(
             "fields",
-            "courseWork(dueDate,dueTime,id,title,alternateLink)",
+            "studentSubmissions(courseWorkId,state,late,id,assignedGrade)",
         )
-        .doit()
-        .await?
+        .doit();
+    let course_work_req = client
+        .courses()
+        .course_work_list(&course_id)
+        .param("fields", "courseWork(id,title,description)")
+        .doit();
+    let (course_work_resp, submissions_resp) =
+        try_join!(tokio::spawn(course_work_req), tokio::spawn(submissions_req))?;
+    let submissions = submissions_resp?
+        .1
+        .student_submissions
+        .ok_or(Error::MissingField(
+            "courses.courseWork.studentSubmissions[]",
+        ))?;
+    let course_works = course_work_resp?
         .1
         .course_work
-        .ok_or(Error::MissingField("courses.courseWork"))?;
-    let mut todos = Vec::with_capacity(assignments.len());
-    for assignment in assignments {
-        let due = assignment_due_date(assignment.due_date, assignment.due_time);
-        let id = assignment
-            .id
-            .ok_or(Error::MissingField("courses.courseWork[].id"))?;
-        let name = assignment
-            .title
-            .ok_or(Error::MissingField("courses.courseWork[].title"))?;
+        .ok_or(Error::MissingField("courses.courseWork.studentSubmissions"))?;
+    let mut title_map: HashMap<String, (Option<String>, Option<String>)> = HashMap::new();
+    for course in course_works {
+        if let Some(id) = course.id {
+            title_map.insert(id, (course.title, course.description));
+        }
+    }
+    let mut todos = Vec::new();
+    for submission in submissions.into_iter().filter(is_incomplete) {
+        let late = is_late(&submission);
+        let id = submission.id.ok_or(Error::MissingField(
+            "courses.courseWork.studentSubmissions[].id",
+        ))?;
+        let human_data = title_map.remove(&id).ok_or(Error::MissingField(
+            "courses.courseWork.studentSubmissions{courses.courseWork[].id}",
+        ))?;
         let todo = Todo {
             class_name: class_name.clone(),
             id,
-            description: assignment.description,
-            name,
-            due,
+            description: human_data.1,
+            name: human_data.0,
+            late,
         };
         todos.push(todo);
     }
     Ok(todos)
 }
 
-fn assignment_due_date(date: Option<Date>, time: Option<TimeOfDay>) -> Option<NaiveDateTime> {
-    let (date, time) = (date?, time?);
-    let ndt = NaiveDateTime::new(
-        NaiveDate::from_ymd_opt(
-            date.year?,
-            date.month?.try_into().ok()?,
-            date.day?.try_into().ok()?,
-        )?,
-        NaiveTime::from_hms_opt(
-            time.hours?.try_into().ok()?,
-            time.minutes?.try_into().ok()?,
-            time.seconds?.try_into().ok()?,
-        )?,
-    );
-    Some(ndt)
+fn is_incomplete(sub: &StudentSubmission) -> bool {
+    if is_late(sub) {
+        return true;
+    }
+    let Some(state) = sub.state else {
+        return true;
+    };
+    match state.as_str() {
+        "NEW" | "CREATED" | "RECLAIMED_BY_STUDENT" => true,
+        "TURNED_IN" => false,
+        "RETURNED" => sub.assigned_grade.is_none(),
+        _ => true,
+    }
+}
+
+fn is_late(sub: &StudentSubmission) -> bool {
+    if let Some(lateness) = sub.late {
+        lateness
+    } else {
+        true
+    }
 }
