@@ -55,28 +55,26 @@ async fn todo_get_course(
     let class_name = course
         .name
         .ok_or(Error::MissingField("courses.list.courses[].name"))?;
-    let submissions_req = client
-        .courses()
+    let courses = client.courses();
+    let submissions_req = courses
         .course_work_student_submissions_list(&course_id, "-")
         .param(
             "fields",
-            "studentSubmissions(courseWorkId,state,late,id,assignedGrade)",
+            "studentSubmissions(courseWorkId,state,late,id,courseWorkId,assignedGrade)",
         )
         .doit();
-    let course_work_req = client
-        .courses()
+    let course_work_req = courses
         .course_work_list(&course_id)
         .param("fields", "courseWork(id,title,description)")
         .doit();
-    let (course_work_resp, submissions_resp) =
-        try_join!(tokio::spawn(course_work_req), tokio::spawn(submissions_req))?;
-    let submissions = submissions_resp?
+    let (course_work_resp, submissions_resp) = try_join!(course_work_req, submissions_req)?;
+    let submissions = submissions_resp
         .1
         .student_submissions
         .ok_or(Error::MissingField(
             "courses.courseWork.studentSubmissions[]",
         ))?;
-    let course_works = course_work_resp?
+    let course_works = course_work_resp
         .1
         .course_work
         .ok_or(Error::MissingField("courses.courseWork.studentSubmissions"))?;
@@ -87,19 +85,24 @@ async fn todo_get_course(
         }
     }
     let mut todos = Vec::new();
-    for submission in submissions.into_iter().filter(is_incomplete) {
+    let mut submissions = submissions.iter().filter(is_incomplete);
+    submissions.sort_by(compare);
+    for submission in submissions.into_iter() {
         let late = is_late(&submission);
         let id = submission.id.ok_or(Error::MissingField(
             "courses.courseWork.studentSubmissions[].id",
         ))?;
-        let human_data = title_map.remove(&id).ok_or(Error::MissingField(
+        let course_id = submission.course_work_id.ok_or(Error::MissingField(
+            "courses.courseWork.studentSubmissions[].courseWorkId",
+        ))?;
+        let human_data = title_map.get(&course_id).ok_or(Error::MissingField(
             "courses.courseWork.studentSubmissions{courses.courseWork[].id}",
         ))?;
         let todo = Todo {
             class_name: class_name.clone(),
             id,
-            description: human_data.1,
-            name: human_data.0,
+            description: human_data.1.clone(),
+            name: human_data.0.clone(),
             late,
         };
         todos.push(todo);
@@ -107,15 +110,14 @@ async fn todo_get_course(
     Ok(todos)
 }
 
-fn is_incomplete(sub: &StudentSubmission) -> bool {
+fn is_incomplete(sub: &&StudentSubmission) -> bool {
     if is_late(sub) {
         return true;
     }
-    let Some(state) = sub.state else {
+    let Some(state) = &sub.state else {
         return true;
     };
     match state.as_str() {
-        "NEW" | "CREATED" | "RECLAIMED_BY_STUDENT" => true,
         "TURNED_IN" => false,
         "RETURNED" => sub.assigned_grade.is_none(),
         _ => true,
@@ -123,9 +125,5 @@ fn is_incomplete(sub: &StudentSubmission) -> bool {
 }
 
 fn is_late(sub: &StudentSubmission) -> bool {
-    if let Some(lateness) = sub.late {
-        lateness
-    } else {
-        true
-    }
+    sub.late.map_or(true, |lateness| lateness)
 }
