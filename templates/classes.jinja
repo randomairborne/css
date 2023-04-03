@@ -4,7 +4,7 @@
 {% block content %}
 {% if classes %}
 {% for class in classes %}
-<a href="/class/{{ class.id }}" class="boxed">{{ class.name }}</a>
+<a href="/todo/{{ class.id }}" class="boxed">{{ class.name }}</a>
 {% endfor %}
 {% else %}
 <h2>You don't seem to be in any classes.</h2>

@@ -3,6 +3,7 @@
 
 {% block content %}
 {{ class.name }}
+<a href="/todo/{{ class.id }}" class="boxed">To Do for class</div>
 {% for assignment in coursework.courseWork %}
 <a href="{{ assignment.alternateLink }}" class="boxed">{{ assignment.title }}</div>
 {% endfor %}

@@ -41,3 +41,16 @@ a:visited {
     padding: 1vh;
     padding-top: 2vh;
 }
+
+.todo-name {
+    font-size: larger;
+    font-weight: 700;
+}
+
+.todo-description {
+    font-size: small;
+}
+
+.todo-classname {
+    font-weight: 600;
+}

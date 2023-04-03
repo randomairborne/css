@@ -14,11 +14,11 @@ Todo {
 {% block content %}
 {% for todo in todos %}
 <a href="/assignment/{{ todo.id }}" class="boxed">
-<div>{{ todo.name }}</div>
+<div class="todo-classname">{{ todo.class_name }}</div>
+<div class="todo-name">{{ todo.name }}</div>
 {% if todo.description %}
 <div class="todo-description">{{ todo.description }}</div>
 {% endif %}
-<div class="todo-classname">{{ todo.class_name }}</div>
 </a>
 {% endfor %}
 {% endblock content %}

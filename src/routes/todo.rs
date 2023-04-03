@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use axum::{extract::State, response::Html};
+use axum::{
+    extract::{Path, State},
+    response::Html,
+};
 use classroom::{
     api::{Course, StudentSubmission},
     Classroom,
@@ -9,7 +12,7 @@ use tokio::{task::JoinSet, try_join};
 
 use crate::{auth::UserClient, state::ClassroomHyperClient, AppState, Error};
 
-pub async fn todo(
+pub async fn todos_all(
     UserClient(client): UserClient,
     State(state): State<AppState>,
 ) -> Result<Html<String>, Error> {
@@ -27,11 +30,29 @@ pub async fn todo(
         .courses
         .ok_or(Error::MissingField("courses.list.courses"))?
     {
-        lister_joins.spawn(todo_get_course(client.clone(), course));
+        lister_joins.spawn(get_course(client.clone(), course));
     }
     while let Some(res) = lister_joins.join_next().await {
         assignment_list.append(&mut res??);
     }
+    context.insert("todos", &assignment_list);
+    Ok(Html(state.tera.render("todo.jinja", &context)?))
+}
+
+pub async fn todos_for_class(
+    UserClient(client): UserClient,
+    State(state): State<AppState>,
+    Path(course_id): Path<String>,
+) -> Result<Html<String>, Error> {
+    let mut context = tera::Context::new();
+    let course = client
+        .courses()
+        .get(&course_id)
+        .param("fields", "id,name")
+        .doit()
+        .await?
+        .1;
+    let assignment_list: Vec<Todo> = get_course(client, course).await?;
     context.insert("todos", &assignment_list);
     Ok(Html(state.tera.render("todo.jinja", &context)?))
 }
@@ -45,7 +66,7 @@ struct Todo {
     late: bool,
 }
 
-async fn todo_get_course(
+async fn get_course(
     client: Classroom<ClassroomHyperClient>,
     course: Course,
 ) -> Result<Vec<Todo>, Error> {
@@ -85,8 +106,8 @@ async fn todo_get_course(
         }
     }
     let mut todos = Vec::new();
-    let mut submissions = submissions.iter().filter(is_incomplete);
-    submissions.sort_by(compare);
+    let submissions: Vec<StudentSubmission> =
+        submissions.into_iter().filter(is_incomplete).collect();
     for submission in submissions.into_iter() {
         let late = is_late(&submission);
         let id = submission.id.ok_or(Error::MissingField(
@@ -110,7 +131,8 @@ async fn todo_get_course(
     Ok(todos)
 }
 
-fn is_incomplete(sub: &&StudentSubmission) -> bool {
+fn is_incomplete(sub: &StudentSubmission) -> bool {
+    println!("{sub:?}");
     if is_late(sub) {
         return true;
     }
@@ -125,5 +147,5 @@ fn is_incomplete(sub: &&StudentSubmission) -> bool {
 }
 
 fn is_late(sub: &StudentSubmission) -> bool {
-    sub.late.map_or(true, |lateness| lateness)
+    sub.late.map_or(false, |lateness| lateness)
 }

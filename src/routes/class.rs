@@ -20,10 +20,10 @@ pub async fn class(
     UserClient(client): UserClient,
     State(state): State<AppState>,
     Path(id): Path<String>,
-    Query(pages): Query<PaginationQuery>,
+    Query(pages): Query<super::PaginationQuery>,
 ) -> Result<Html<String>, Error> {
     let mut context = tera::Context::new();
-    let req_general = client.courses().get(&id);
+    let req_general = client.courses().get(&id).param("fields", "id,name");
     let mut req_work = client
         .courses()
         .course_work_list(&id)
@@ -40,9 +40,4 @@ pub async fn class(
     context.insert("coursework", &work.1);
     context.insert("pagination_token", &work.1.next_page_token);
     Ok(Html(state.tera.render("class.jinja", &context)?))
-}
-
-#[derive(serde::Deserialize)]
-pub struct PaginationQuery {
-    page: Option<String>,
 }
