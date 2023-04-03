@@ -1,0 +1,24 @@
+{% extends "base.jinja" %}
+
+{# This file takes a list of todos:
+Todo {
+    class_name: String,
+    id: String,
+    description: String?,
+    name: String,
+}
+#}
+
+{% block title %}To-Do{% endblock title %}
+
+{% block content %}
+{% for todo in todos %}
+<a href="/assignment/{{ todo.id }}" class="boxed">
+<div class="todo-classname">{{ todo.class_name }}</div>
+<div class="todo-name">{{ todo.name }}</div>
+{% if todo.description %}
+<div class="todo-description">{{ todo.description }}</div>
+{% endif %}
+</a>
+{% endfor %}
+{% endblock content %}

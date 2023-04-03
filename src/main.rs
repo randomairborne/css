@@ -29,6 +29,7 @@ async fn main() {
         .route("/todo", get(routes::todos_all))
         .route("/todo/", get(routes::todos_all))
         .route("/todo/:class", get(routes::todos_for_class))
+        .route("/assignment/:classid/:id", get(routes::assignment))
         .route("/oauth", get(oauth::redirect))
         .route("/oauth/callback", get(oauth::set_tokens))
         .layer(tower_cookies::CookieManagerLayer::new())

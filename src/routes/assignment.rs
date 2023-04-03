@@ -20,5 +20,5 @@ pub async fn assignment(
     let (general, work) = try_join!(req_general.doit(), req_work.doit())?;
     context.insert("class", &general.1);
     context.insert("coursework", &work.1);
-    Ok(Html(state.tera.render("class.jinja", &context)?))
+    Ok(Html(state.tera.render("assignment.jinja", &context)?))
 }

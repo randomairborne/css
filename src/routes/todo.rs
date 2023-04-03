@@ -60,6 +60,7 @@ pub async fn todos_for_class(
 #[derive(serde::Serialize)]
 struct Todo {
     class_name: String,
+    class_id: String,
     id: String,
     description: Option<String>,
     name: Option<String>,
@@ -113,14 +114,12 @@ async fn get_course(
         let id = submission.id.ok_or(Error::MissingField(
             "courses.courseWork.studentSubmissions[].id",
         ))?;
-        let course_id = submission.course_work_id.ok_or(Error::MissingField(
-            "courses.courseWork.studentSubmissions[].courseWorkId",
-        ))?;
         let human_data = title_map.get(&course_id).ok_or(Error::MissingField(
             "courses.courseWork.studentSubmissions{courses.courseWork[].id}",
         ))?;
         let todo = Todo {
             class_name: class_name.clone(),
+            class_id: course_id.clone(),
             id,
             description: human_data.1.clone(),
             name: human_data.0.clone(),
