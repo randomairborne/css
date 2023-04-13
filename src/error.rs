@@ -52,7 +52,7 @@ impl IntoResponse for Error {
             return Self::UninitializedOnceCell.to_ugly_response()
         };
         let mut context = tera::Context::new();
-        context.insert("error", &self.to_string());
+        context.insert("error", &format!("{self:#?}"));
         match tera.render("error.jinja", &context) {
             Ok(v) => Html(v).into_response(),
             Err(e) => Self::Tera(e).to_ugly_response(),

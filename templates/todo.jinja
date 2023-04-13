@@ -13,7 +13,7 @@ Todo {
 
 {% block content %}
 {% for todo in todos %}
-<a href="/assignment/{{ todo.id }}" class="boxed">
+<a href="/assignment/{{ todo.class_id }}/{{ todo.id }}" class="boxed">
 <div class="todo-classname">{{ todo.class_name }}</div>
 <div class="todo-name">{{ todo.name }}</div>
 {% if todo.description %}

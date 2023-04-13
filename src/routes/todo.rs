@@ -79,7 +79,7 @@ async fn get_course(
         .ok_or(Error::MissingField("courses.list.courses[].name"))?;
     let courses = client.courses();
     let submissions_req = courses
-        .course_work_student_submissions_list(&course_id, "-")
+        .course_work_student_submissions_list(&course_id, "-").add_states(new_value)
         .param(
             "fields",
             "studentSubmissions(courseWorkId,state,late,id,courseWorkId,assignedGrade)",
@@ -111,10 +111,13 @@ async fn get_course(
         submissions.into_iter().filter(is_incomplete).collect();
     for submission in submissions.into_iter() {
         let late = is_late(&submission);
+        let work_id = submission.course_work_id.ok_or(Error::MissingField(
+            "courses.courseWork.studentSubmissions[].courseWorkId",
+        ))?;
         let id = submission.id.ok_or(Error::MissingField(
             "courses.courseWork.studentSubmissions[].id",
         ))?;
-        let human_data = title_map.get(&course_id).ok_or(Error::MissingField(
+        let human_data = title_map.get(&work_id).ok_or(Error::MissingField(
             "courses.courseWork.studentSubmissions{courses.courseWork[].id}",
         ))?;
         let todo = Todo {
@@ -131,7 +134,6 @@ async fn get_course(
 }
 
 fn is_incomplete(sub: &StudentSubmission) -> bool {
-    println!("{sub:?}");
     if is_late(sub) {
         return true;
     }
