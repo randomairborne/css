@@ -10,6 +10,7 @@ body {
 
 a {
     color: aqua;
+    text-decoration: none;
 }
 
 a:visited {
@@ -20,7 +21,7 @@ a:visited {
     border-style: outset;
     border-color: #212121;
     border-radius: 5px;
-    padding: 2vh;
+    padding: 2vh;``
 }
 
 .container {

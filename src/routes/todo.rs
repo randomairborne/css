@@ -6,7 +6,7 @@ use axum::{
 };
 use classroom::{
     api::{Course, CourseWork, StudentSubmission, TimeOfDay},
-    chrono::{NaiveDate, NaiveDateTime, NaiveTime},
+    chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc},
     Classroom,
 };
 use tokio::{task::JoinSet, try_join};
@@ -67,7 +67,25 @@ struct Todo {
     description: Option<String>,
     name: Option<String>,
     late: bool,
-    due: Option<NaiveDateTime>,
+    due: Option<DueDateTime>,
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone)]
+struct DueDateTime(DateTime<Utc>);
+
+impl std::ops::Deref for DueDateTime {
+    type Target = NaiveDateTime;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl serde::Serialize for DueDateTime {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer {
+        serializer.serialize_i64(self.timestamp_millis())
+    }
 }
 
 async fn get_course(
@@ -125,9 +143,9 @@ async fn get_course(
         ))?;
         let due = if let Some(due_date) = course.due_date.clone() {
             let due_time = course.due_time.clone().unwrap_or(TimeOfDay {
-                hours: Some(23),
-                minutes: Some(59),
-                seconds: Some(59),
+                hours: Some(0),
+                minutes: Some(0),
+                seconds: Some(0),
                 nanos: Some(0),
             });
             classroom_to_naivedate(due_date, due_time)
@@ -177,14 +195,10 @@ fn classroom_to_naivedate(
         classroom_date.day?.try_into().ok()?,
     )?;
     let time = NaiveTime::from_hms_nano_opt(
-        classroom_time.hours.unwrap_or(23).try_into().ok()?,
-        classroom_time.minutes.unwrap_or(59).try_into().ok()?,
-        classroom_time.seconds.unwrap_or(59).try_into().ok()?,
-        classroom_time
-            .nanos
-            .unwrap_or(0)
-            .try_into()
-            .ok()?,
+        classroom_time.hours.unwrap_or(0).try_into().ok()?,
+        classroom_time.minutes.unwrap_or(0).try_into().ok()?,
+        classroom_time.seconds.unwrap_or(0).try_into().ok()?,
+        classroom_time.nanos.unwrap_or(0).try_into().ok()?,
     )?;
     Some(classroom::chrono::NaiveDateTime::new(date, time))
 }
