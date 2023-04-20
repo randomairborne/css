@@ -6,6 +6,7 @@ Todo {
     id: String,
     description: String?,
     name: String,
+    due: String?
 }
 #}
 
@@ -18,6 +19,9 @@ Todo {
 <div class="todo-name">{{ todo.name }}</div>
 {% if todo.description %}
 <div class="todo-description">{{ todo.description }}</div>
+{% endif %}
+{% if todo.due %}
+<div class="todo-due">{{ todo.due }}</div>
 {% endif %}
 </a>
 {% endfor %}

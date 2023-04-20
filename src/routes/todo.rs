@@ -5,7 +5,8 @@ use axum::{
     response::Html,
 };
 use classroom::{
-    api::{Course, StudentSubmission},
+    api::{Course, CourseWork, StudentSubmission},
+    chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc},
     Classroom,
 };
 use tokio::{task::JoinSet, try_join};
@@ -65,6 +66,7 @@ struct Todo {
     description: Option<String>,
     name: Option<String>,
     late: bool,
+    due: Option<NaiveDateTime>,
 }
 
 async fn get_course(
@@ -79,7 +81,7 @@ async fn get_course(
         .ok_or(Error::MissingField("courses.list.courses[].name"))?;
     let courses = client.courses();
     let submissions_req = courses
-        .course_work_student_submissions_list(&course_id, "-").add_states(new_value)
+        .course_work_student_submissions_list(&course_id, "-")
         .param(
             "fields",
             "studentSubmissions(courseWorkId,state,late,id,courseWorkId,assignedGrade)",
@@ -87,7 +89,7 @@ async fn get_course(
         .doit();
     let course_work_req = courses
         .course_work_list(&course_id)
-        .param("fields", "courseWork(id,title,description)")
+        .param("fields", "courseWork(id,title,description,dueDate,dueTime)")
         .doit();
     let (course_work_resp, submissions_resp) = try_join!(course_work_req, submissions_req)?;
     let submissions = submissions_resp
@@ -100,10 +102,10 @@ async fn get_course(
         .1
         .course_work
         .ok_or(Error::MissingField("courses.courseWork.studentSubmissions"))?;
-    let mut title_map: HashMap<String, (Option<String>, Option<String>)> = HashMap::new();
+    let mut course_works_by_id: HashMap<String, CourseWork> = HashMap::new();
     for course in course_works {
-        if let Some(id) = course.id {
-            title_map.insert(id, (course.title, course.description));
+        if let Some(id) = course.id.clone() {
+            course_works_by_id.insert(id, course);
         }
     }
     let mut todos = Vec::new();
@@ -117,19 +119,30 @@ async fn get_course(
         let id = submission.id.ok_or(Error::MissingField(
             "courses.courseWork.studentSubmissions[].id",
         ))?;
-        let human_data = title_map.get(&work_id).ok_or(Error::MissingField(
+        let course = course_works_by_id.get(&work_id).ok_or(Error::MissingField(
             "courses.courseWork.studentSubmissions{courses.courseWork[].id}",
         ))?;
+        let due_date = course
+            .due_date
+            .clone()
+            .ok_or(Error::MissingField("courses.courseWork[].dueDate"))?;
+        let due_time = course
+            .due_time
+            .clone()
+            .ok_or(Error::MissingField("courses.courseWork[].dueTime"))?;
+        let due = classroom_to_naivedate(due_date, due_time);
         let todo = Todo {
             class_name: class_name.clone(),
             class_id: course_id.clone(),
             id,
-            description: human_data.1.clone(),
-            name: human_data.0.clone(),
+            description: course.description.clone(),
+            name: course.title.clone(),
             late,
+            due,
         };
         todos.push(todo);
     }
+    todos.sort_by(|a, b| a.due.cmp(&b.due));
     Ok(todos)
 }
 
@@ -149,4 +162,22 @@ fn is_incomplete(sub: &StudentSubmission) -> bool {
 
 fn is_late(sub: &StudentSubmission) -> bool {
     sub.late.map_or(false, |lateness| lateness)
+}
+
+fn classroom_to_naivedate(
+    classroom_date: classroom::api::Date,
+    classroom_time: classroom::api::TimeOfDay,
+) -> Option<classroom::chrono::NaiveDateTime> {
+    let date = NaiveDate::from_ymd_opt(
+        classroom_date.year?,
+        classroom_date.month?.try_into().ok()?,
+        classroom_date.day?.try_into().ok()?,
+    )?;
+    let time = NaiveTime::from_hms_nano_opt(
+        classroom_time.hours?.try_into().ok()?,
+        classroom_time.minutes?.try_into().ok()?,
+        classroom_time.seconds?.try_into().ok()?,
+        classroom_time.nanos?.try_into().ok()?,
+    )?;
+    Some(classroom::chrono::NaiveDateTime::new(date, time))
 }

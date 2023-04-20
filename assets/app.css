@@ -54,3 +54,6 @@ a:visited {
 .todo-classname {
     font-weight: 600;
 }
+.todo-due {
+    font-weight: 800;
+}
