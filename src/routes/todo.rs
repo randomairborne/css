@@ -5,8 +5,8 @@ use axum::{
     response::Html,
 };
 use classroom::{
-    api::{Course, CourseWork, StudentSubmission},
-    chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc},
+    api::{Course, CourseWork, StudentSubmission, TimeOfDay},
+    chrono::{NaiveDate, NaiveDateTime, NaiveTime},
     Classroom,
 };
 use tokio::{task::JoinSet, try_join};
@@ -36,6 +36,7 @@ pub async fn todos_all(
     while let Some(res) = lister_joins.join_next().await {
         assignment_list.append(&mut res??);
     }
+    assignment_list.sort_by(|a, b| a.due.cmp(&b.due).reverse());
     context.insert("todos", &assignment_list);
     Ok(Html(state.tera.render("todo.jinja", &context)?))
 }
@@ -122,15 +123,17 @@ async fn get_course(
         let course = course_works_by_id.get(&work_id).ok_or(Error::MissingField(
             "courses.courseWork.studentSubmissions{courses.courseWork[].id}",
         ))?;
-        let due_date = course
-            .due_date
-            .clone()
-            .ok_or(Error::MissingField("courses.courseWork[].dueDate"))?;
-        let due_time = course
-            .due_time
-            .clone()
-            .ok_or(Error::MissingField("courses.courseWork[].dueTime"))?;
-        let due = classroom_to_naivedate(due_date, due_time);
+        let due = if let Some(due_date) = course.due_date.clone() {
+            let due_time = course.due_time.clone().unwrap_or_else(|| TimeOfDay {
+                hours: Some(23),
+                minutes: Some(59),
+                seconds: Some(59),
+                nanos: Some(0),
+            });
+            classroom_to_naivedate(due_date, due_time)
+        } else {
+            None
+        };
         let todo = Todo {
             class_name: class_name.clone(),
             class_id: course_id.clone(),
@@ -142,7 +145,7 @@ async fn get_course(
         };
         todos.push(todo);
     }
-    todos.sort_by(|a, b| a.due.cmp(&b.due));
+    todos.sort_by(|a, b| a.due.cmp(&b.due).reverse());
     Ok(todos)
 }
 
@@ -174,10 +177,14 @@ fn classroom_to_naivedate(
         classroom_date.day?.try_into().ok()?,
     )?;
     let time = NaiveTime::from_hms_nano_opt(
-        classroom_time.hours?.try_into().ok()?,
-        classroom_time.minutes?.try_into().ok()?,
-        classroom_time.seconds?.try_into().ok()?,
-        classroom_time.nanos?.try_into().ok()?,
+        classroom_time.hours.unwrap_or(23).try_into().ok()?,
+        classroom_time.minutes.unwrap_or(59).try_into().ok()?,
+        classroom_time.seconds.unwrap_or(59).try_into().ok()?,
+        classroom_time
+            .nanos
+            .unwrap_or(0)
+            .try_into()
+            .ok()?,
     )?;
     Some(classroom::chrono::NaiveDateTime::new(date, time))
 }
