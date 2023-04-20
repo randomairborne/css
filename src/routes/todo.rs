@@ -6,7 +6,7 @@ use axum::{
 };
 use classroom::{
     api::{Course, CourseWork, StudentSubmission, TimeOfDay},
-    chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc},
+    chrono::{DateTime, NaiveDate, NaiveTime, Utc},
     Classroom,
 };
 use tokio::{task::JoinSet, try_join};
@@ -74,7 +74,7 @@ struct Todo {
 struct DueDateTime(DateTime<Utc>);
 
 impl std::ops::Deref for DueDateTime {
-    type Target = NaiveDateTime;
+    type Target = DateTime<Utc>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
@@ -82,8 +82,9 @@ impl std::ops::Deref for DueDateTime {
 
 impl serde::Serialize for DueDateTime {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer {
+    where
+        S: serde::Serializer,
+    {
         serializer.serialize_i64(self.timestamp_millis())
     }
 }
@@ -141,17 +142,15 @@ async fn get_course(
         let course = course_works_by_id.get(&work_id).ok_or(Error::MissingField(
             "courses.courseWork.studentSubmissions{courses.courseWork[].id}",
         ))?;
-        let due = if let Some(due_date) = course.due_date.clone() {
+        let due = course.due_date.as_ref().and_then(|due_date| {
             let due_time = course.due_time.clone().unwrap_or(TimeOfDay {
                 hours: Some(0),
                 minutes: Some(0),
                 seconds: Some(0),
                 nanos: Some(0),
             });
-            classroom_to_naivedate(due_date, due_time)
-        } else {
-            None
-        };
+            classroom_to_naivedate(due_date, &due_time)
+        });
         let todo = Todo {
             class_name: class_name.clone(),
             class_id: course_id.clone(),
@@ -186,9 +185,9 @@ fn is_late(sub: &StudentSubmission) -> bool {
 }
 
 fn classroom_to_naivedate(
-    classroom_date: classroom::api::Date,
-    classroom_time: classroom::api::TimeOfDay,
-) -> Option<classroom::chrono::NaiveDateTime> {
+    classroom_date: &classroom::api::Date,
+    classroom_time: &classroom::api::TimeOfDay,
+) -> Option<DueDateTime> {
     let date = NaiveDate::from_ymd_opt(
         classroom_date.year?,
         classroom_date.month?.try_into().ok()?,
@@ -200,5 +199,8 @@ fn classroom_to_naivedate(
         classroom_time.seconds.unwrap_or(0).try_into().ok()?,
         classroom_time.nanos.unwrap_or(0).try_into().ok()?,
     )?;
-    Some(classroom::chrono::NaiveDateTime::new(date, time))
+    Some(DueDateTime(classroom::chrono::DateTime::<Utc>::from_utc(
+        classroom::chrono::NaiveDateTime::new(date, time),
+        Utc,
+    )))
 }
