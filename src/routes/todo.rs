@@ -112,7 +112,7 @@ async fn get_course(
     let mut todos = Vec::new();
     let submissions: Vec<StudentSubmission> =
         submissions.into_iter().filter(is_incomplete).collect();
-    for submission in submissions.into_iter() {
+    for submission in submissions {
         let late = is_late(&submission);
         let work_id = submission.course_work_id.ok_or(Error::MissingField(
             "courses.courseWork.studentSubmissions[].courseWorkId",
@@ -124,7 +124,7 @@ async fn get_course(
             "courses.courseWork.studentSubmissions{courses.courseWork[].id}",
         ))?;
         let due = if let Some(due_date) = course.due_date.clone() {
-            let due_time = course.due_time.clone().unwrap_or_else(|| TimeOfDay {
+            let due_time = course.due_time.clone().unwrap_or(TimeOfDay {
                 hours: Some(23),
                 minutes: Some(59),
                 seconds: Some(59),
